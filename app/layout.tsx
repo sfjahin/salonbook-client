@@ -1,16 +1,23 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import { ThemeProvider } from "@/components/theme-provider"
+import { cn } from "@/lib/utils"
 
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'})
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google"
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 })
 
+const fontSerif = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+})
+
+// Shared shell for every route: fonts, theme and base styles.
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,9 +27,15 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", geist.variable)}
+      className={cn(
+        "antialiased",
+        fontMono.variable,
+        "font-sans",
+        geist.variable,
+        fontSerif.variable
+      )}
     >
-      <body>
+      <body className="flex min-h-svh flex-col">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
