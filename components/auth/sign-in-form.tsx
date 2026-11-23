@@ -27,7 +27,7 @@ function SignInForm() {
     setError(null)
 
     try {
-      const { error } = await signIn.email({
+      const { data, error } = await signIn.email({
         email,
         password,
         rememberMe,
@@ -41,6 +41,12 @@ function SignInForm() {
         setPending(false)
         return
       }
+
+      console.log("[sign-in] success:", {
+        id: data?.user?.id,
+        name: data?.user?.name,
+        email: data?.user?.email,
+      })
 
       router.push("/")
       router.refresh()

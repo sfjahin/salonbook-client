@@ -40,10 +40,11 @@ function SignUpForm() {
     setPending(true)
 
     try {
-      const { error } = await signUp.email({
+      const { data, error } = await signUp.email({
         name,
         email,
         password,
+        phone,
         callbackURL: "/",
       })
 
@@ -54,6 +55,13 @@ function SignUpForm() {
         setPending(false)
         return
       }
+
+      console.log("[sign-up] success:", {
+        id: data?.user?.id,
+        name: data?.user?.name,
+        email: data?.user?.email,
+        phone: (data?.user as { phone?: string } | undefined)?.phone,
+      })
 
       router.push("/")
       router.refresh()
