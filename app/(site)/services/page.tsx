@@ -1,29 +1,51 @@
 import Link from "next/link"
-import { ArrowDown } from "lucide-react"
+import { Search } from "lucide-react"
 
-import { cn } from "cn"
-
+import { ServiceCard } from "@/components/service-card"
 import { buttonVariants } from "@/components/ui/button"
+import { fetchCategories, fetchServices } from "@/lib/catalog"
+import { cn } from "@/lib/utils"
+
+export const dynamic = "force-dynamic"
 
 export const metadata = {
   title: "Browse services — SalonBook",
   description: "Explore treatments made for your kind of beautiful.",
 }
 
-const categories = [
-  { label: "All services", value: "all" },
-  { label: "Hair", value: "hair" },
-  { label: "Skin", value: "skin" },
-  { label: "Nails", value: "nails" },
-  { label: "Wellness", value: "wellness" },
-  { label: "Beauty", value: "beauty" },
+const sortOptions = [
+  { label: "Recommended", value: "newest" },
+  { label: "Price: low to high", value: "price-asc" },
+  { label: "Price: high to low", value: "price-desc" },
 ]
+
+function buildHref(base: Record<string, string | undefined>) {
+  const params = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(base)) {
+    if (value && value !== "all") params.set(key, value)
+  }
+
+  const query = params.toString()
+  return query ? `/services?${query}` : "/services"
+}
 
 export default async function ServicesPage(props: PageProps<"/services">) {
   const params = await props.searchParams
+
   const activeCategory =
     typeof params.category === "string" ? params.category : "all"
   const query = typeof params.q === "string" ? params.q : ""
+  const sort = typeof params.sort === "string" ? params.sort : "newest"
+
+  const [services, categories] = await Promise.all([
+    fetchServices({
+      q: query || undefined,
+      category: activeCategory,
+      sort,
+    }),
+    fetchCategories(),
+  ])
 
   return (
     <main className="bg-hero text-hero-foreground">
@@ -59,25 +81,35 @@ export default async function ServicesPage(props: PageProps<"/services">) {
             />
             <button
               type="submit"
-              className={cn(buttonVariants(), "h-11 shrink-0 px-8")}
+              className={cn(buttonVariants(), "h-11 shrink-0 gap-2 px-8")}
             >
+              <Search className="size-4" aria-hidden="true" />
               Search
             </button>
           </div>
         </form>
 
         <div className="mt-6 flex flex-wrap gap-2">
+          <Link
+            href={buildHref({ q: query })}
+            aria-current={activeCategory === "all" ? "page" : undefined}
+            className={cn(
+              "rounded-full px-5 py-1.5 text-xs font-medium transition-colors",
+              activeCategory === "all"
+                ? "bg-ink text-paper"
+                : "bg-sand text-hero-foreground hover:bg-sand/70"
+            )}
+          >
+            All services
+          </Link>
+
           {categories.map((category) => {
             const isActive = activeCategory === category.value
 
             return (
               <Link
                 key={category.value}
-                href={
-                  category.value === "all"
-                    ? "/services"
-                    : `/services?category=${category.value}`
-                }
+                href={buildHref({ q: query, category: category.value })}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "rounded-full px-5 py-1.5 text-xs font-medium transition-colors",
@@ -92,20 +124,80 @@ export default async function ServicesPage(props: PageProps<"/services">) {
           })}
         </div>
 
-        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 text-xs text-hero-muted">
-          <p>6 services</p>
-          <button
-            type="button"
-            className="flex items-center gap-1.5 transition-colors hover:text-hero-foreground"
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-hero-muted">
+            {services.length} service{services.length === 1 ? "" : "s"}
+            {query ? ` matching “${query}”` : ""}
+          </p>
+
+          <form
+            action="/services"
+            className="flex items-center gap-2 rounded-md bg-sand/60 px-3 py-1.5"
           >
-            Sort: Recommended
-            <ArrowDown className="size-3.5" aria-hidden="true" />
-          </button>
+            {query ? <input type="hidden" name="q" value={query} /> : null}
+            {activeCategory !== "all" ? (
+              <input
+                type="hidden"
+                name="category"
+                value={activeCategory}
+              />
+            ) : null}
+
+            <label htmlFor="service-sort" className="sr-only">
+              Sort services
+            </label>
+            <select
+              id="service-sort"
+              name="sort"
+              defaultValue={sort}
+              className="bg-transparent text-xs text-hero-foreground outline-none"
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="text-xs font-medium underline-offset-4 hover:underline"
+            >
+              Apply
+            </button>
+          </form>
         </div>
 
-        <p className="mt-12 text-xs text-hero-muted">
-          You&apos;ve found your feel-good favourites.
-        </p>
+        {services.length === 0 ? (
+          <div className="mt-12 rounded-xl border border-dashed border-hero-foreground/20 p-12 text-center">
+            <p className="font-serif text-2xl tracking-tight">
+              No services found.
+            </p>
+            <p className="mt-3 text-sm text-hero-muted">
+              Try a different search term or clear the filters.
+            </p>
+            <Link
+              href="/services"
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "mt-6 h-10 px-5"
+              )}
+            >
+              Clear filters
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {services.map((service) => (
+              <ServiceCard key={service.id} service={service} />
+            ))}
+          </div>
+        )}
+
+        {services.length > 0 ? (
+          <p className="mt-12 text-xs text-hero-muted">
+            You&apos;ve found your feel-good favourites.
+          </p>
+        ) : null}
       </section>
     </main>
   )
