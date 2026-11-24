@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { admin } from "better-auth/plugins"
@@ -30,7 +31,10 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-        admin()
+    admin({
+      defaultRole: "user",
+      adminRoles: ["admin"],
+    }),
   ],
   user: {
     additionalFields: {
@@ -47,6 +51,29 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        before: async (user) => {
+          const email =
+            typeof user.email === "string" ? user.email.toLowerCase() : "";
+          const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+          const isReservedAdmin = Boolean(adminEmail) && email === adminEmail;
+          const isAdminSeed = process.env.ADMIN_SEED === "true";
+
+          // The administrator account can only be created by the seed script.
+          if (isReservedAdmin && !isAdminSeed) {
+            throw new APIError("FORBIDDEN", {
+              message:
+                "This email is reserved for the SalonBook administrator.",
+            });
+          }
+
+          // Never trust a role coming from a public sign-up request.
+          return {
+            data: {
+              ...user,
+              role: isReservedAdmin && isAdminSeed ? "admin" : "user",
+            },
+          };
+        },
         after: async (user) => {
           try {
             console.log("[auth] sign-up saved to MongoDB:", {

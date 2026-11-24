@@ -1,11 +1,9 @@
 import Image from "next/image"
 import Link from "next/link"
 
-import { cn } from "cn"
-
+import { AccountNav } from "@/components/account-nav"
 import logo from "@/app/images/SalonBook.png"
 import { navItems } from "@/lib/nav"
-import { buttonVariants } from "@/components/ui/button"
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -49,18 +47,7 @@ function SiteHeader() {
           </div>
 
           <div className="hidden items-center gap-2 justify-self-end md:flex">
-            <Link
-              href="/sign-in"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "lg" }),
-                "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Sign in
-            </Link>
-            <Link href="/sign-up" className={cn(buttonVariants(), "h-10 px-5")}>
-              Sign up
-            </Link>
+            <AccountNav />
           </div>
 
           <div className="justify-self-end md:hidden">

@@ -3,12 +3,14 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { MenuIcon } from "lucide-react"
 
 import { cn } from "cn"
 
 import logo from "@/app/images/SalonBook.png"
 import { navItems } from "@/lib/nav"
+import { signOut, useSession } from "@/lib/auth-client"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Sheet,
@@ -21,7 +23,19 @@ import {
 } from "@/components/ui/sheet"
 
 function MobileNav() {
+  const router = useRouter()
   const [open, setOpen] = React.useState(false)
+  const { data, isPending } = useSession()
+
+  const isAdmin =
+    (data?.user as { role?: string | null } | undefined)?.role === "admin"
+
+  async function handleSignOut() {
+    await signOut()
+    setOpen(false)
+    router.push("/")
+    router.refresh()
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -63,29 +77,61 @@ function MobileNav() {
           ))}
         </nav>
         <SheetFooter>
-          <SheetClose
-            render={
-              <Link
-                href="/sign-in"
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 w-full"
-                )}
-              />
-            }
-          >
-            Sign in
-          </SheetClose>
-          <SheetClose
-            render={
-              <Link
-                href="/sign-up"
-                className={cn(buttonVariants(), "h-10 w-full")}
-              />
-            }
-          >
-            Sign up
-          </SheetClose>
+          {isPending ? (
+            <span
+              className="h-10 w-full animate-pulse rounded-md bg-muted"
+              aria-hidden="true"
+            />
+          ) : data?.user ? (
+            <>
+              <SheetClose
+                render={
+                  <Link
+                    href={isAdmin ? "/admin" : "/dashboard"}
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "h-10 w-full"
+                    )}
+                  />
+                }
+              >
+                {isAdmin ? "Admin dashboard" : "My dashboard"}
+              </SheetClose>
+              <Button
+                type="button"
+                onClick={handleSignOut}
+                className="h-10 w-full"
+              >
+                Sign out
+              </Button>
+            </>
+          ) : (
+            <>
+              <SheetClose
+                render={
+                  <Link
+                    href="/sign-in"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "h-10 w-full"
+                    )}
+                  />
+                }
+              >
+                Sign in
+              </SheetClose>
+              <SheetClose
+                render={
+                  <Link
+                    href="/sign-up"
+                    className={cn(buttonVariants(), "h-10 w-full")}
+                  />
+                }
+              >
+                Sign up
+              </SheetClose>
+            </>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>

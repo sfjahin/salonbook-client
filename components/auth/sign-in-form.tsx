@@ -31,7 +31,6 @@ function SignInForm() {
         email,
         password,
         rememberMe,
-        callbackURL: "/",
       })
 
       if (error) {
@@ -42,13 +41,32 @@ function SignInForm() {
         return
       }
 
+      const isAdmin =
+        (data?.user as { role?: string | null } | undefined)?.role === "admin"
+
       console.log("[sign-in] success:", {
         id: data?.user?.id,
         name: data?.user?.name,
         email: data?.user?.email,
+        role: isAdmin ? "admin" : "user",
       })
 
-      router.push("/")
+      // Only honour same-origin destinations that match the user's role.
+      const requested = new URLSearchParams(window.location.search).get("next")
+      const safeRequested =
+        requested?.startsWith("/") && !requested.startsWith("//")
+          ? requested
+          : null
+
+      const target = isAdmin
+        ? safeRequested?.startsWith("/admin")
+          ? safeRequested
+          : "/admin"
+        : safeRequested?.startsWith("/dashboard")
+          ? safeRequested
+          : "/dashboard"
+
+      router.push(target)
       router.refresh()
     } catch {
       setError("Something went wrong. Please try again.")
