@@ -34,7 +34,7 @@ function Hero() {
               "mt-9 h-12 w-fit gap-2 rounded-lg px-6 text-sm"
             )}
           >
-            Find your feel-good
+            Explore salon services
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
 
