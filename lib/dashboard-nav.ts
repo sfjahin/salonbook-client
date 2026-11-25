@@ -1,30 +1,25 @@
-import {
-  CalendarDays,
-  CreditCard,
-  LayoutDashboard,
-  Scissors,
-  UserRound,
-  Users,
-} from "lucide-react"
-
 import type { DashboardNavItem } from "@/components/dashboard/sidebar"
 
 /** Role based navigation used by both dashboard shells. */
 export const customerNav: DashboardNavItem[] = [
-  { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My appointments", href: "/dashboard/appointments", icon: CalendarDays },
-  { label: "My profile", href: "/dashboard/profile", icon: UserRound },
+  { label: "Overview", href: "/dashboard", icon: "overview" },
+  {
+    label: "My appointments",
+    href: "/dashboard/appointments",
+    icon: "appointments",
+  },
+  { label: "My profile", href: "/dashboard/profile", icon: "profile" },
 ]
 
 export const adminNav: DashboardNavItem[] = [
-  { label: "Overview", href: "/admin", icon: LayoutDashboard },
-  { label: "Manage services", href: "/admin/services", icon: Scissors },
+  { label: "Overview", href: "/admin", icon: "overview" },
+  { label: "Manage services", href: "/admin/services", icon: "services" },
   {
     label: "Manage appointments",
     href: "/admin/appointments",
-    icon: CalendarDays,
+    icon: "appointments",
   },
-  { label: "Manage users", href: "/admin/users", icon: Users },
-  { label: "Transactions", href: "/admin/transactions", icon: CreditCard },
-  { label: "My profile", href: "/admin/profile", icon: UserRound },
+  { label: "Manage users", href: "/admin/users", icon: "users" },
+  { label: "Transactions", href: "/admin/transactions", icon: "transactions" },
+  { label: "My profile", href: "/admin/profile", icon: "profile" },
 ]

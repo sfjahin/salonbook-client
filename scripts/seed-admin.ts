@@ -48,24 +48,29 @@ const users = db.collection("user")
 const accounts = db.collection("account")
 
 try {
-  const existing = await users.findOne({ email })
-  let userId: string
+  let user = await users.findOne({ email })
 
-  if (existing) {
-    userId = String(existing._id)
+  if (user) {
     console.log(`[seed-admin] Found existing user ${email}; promoting it.`)
   } else {
-    const result = await auth.api.signUpEmail({
+    await auth.api.signUpEmail({
       body: { name, email, password },
     })
 
-    userId = result.user.id
     console.log(`[seed-admin] Created administrator ${email}.`)
+  }
+
+  // Re-read after sign-up so we always have the adapter's real `_id`
+  // (the Mongo adapter stores related userId values as ObjectId).
+  user = await users.findOne({ email })
+
+  if (!user) {
+    throw new Error("Administrator user could not be created.")
   }
 
   // Guarantee the role and verification state, even for older accounts.
   await users.updateOne(
-    { email },
+    { _id: user._id },
     {
       $set: {
         name,
@@ -80,7 +85,7 @@ try {
   // documented administrator credentials always work.
   const passwordHash = await hashPassword(password)
   const credentialAccount = await accounts.findOne({
-    userId,
+    userId: user._id,
     providerId: "credential",
   })
 
@@ -92,9 +97,9 @@ try {
   } else {
     const now = new Date()
     await accounts.insertOne({
-      accountId: userId,
+      accountId: String(user._id),
       providerId: "credential",
-      userId,
+      userId: user._id,
       password: passwordHash,
       createdAt: now,
       updatedAt: now,
@@ -103,7 +108,7 @@ try {
 
   console.log("[seed-admin] Administrator is ready:")
   console.log(`  email: ${email}`)
-  console.log('  role:  admin')
+  console.log("  role:  admin")
 } finally {
   await client.close()
 }

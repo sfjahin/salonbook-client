@@ -1,5 +1,5 @@
 import { ProfileForm } from "@/components/profile/profile-form"
-import { getServerSession } from "@/lib/auth-guard"
+import { requireCustomer } from "@/lib/auth-guard"
 
 export const dynamic = "force-dynamic"
 
@@ -9,9 +9,9 @@ export const metadata = {
 }
 
 export default async function CustomerProfilePage() {
-  const session = await getServerSession()
+  const session = await requireCustomer()
 
-  const user = session?.user
+  const user = session.user
 
   return (
     <div>

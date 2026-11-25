@@ -1,19 +1,70 @@
-import { BadgeCheck, Shield, ShieldOff } from "lucide-react"
+"use client"
 
-export type AdminUserRow = {
-  id: string
-  name: string
-  email: string
-  role?: string | null
-  banned?: boolean | null
-  emailVerified?: boolean | null
-  createdAt: Date | string
-}
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { BadgeCheck, Loader2, Shield, ShieldOff } from "lucide-react"
+import { toast } from "sonner"
 
-function formatDate(value: Date | string) {
+import { Button } from "@/components/ui/button"
+import { api } from "@/lib/api"
+import type { AdminUser } from "@/lib/types"
+
+export type AdminUserRow = AdminUser
+
+function formatDate(value: string | null) {
+  if (!value) return "—"
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
   }).format(new Date(value))
+}
+
+function BlockButton({ user }: { user: AdminUserRow }) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+
+  async function toggle() {
+    setBusy(true)
+    try {
+      await api.patch(`/api/users/${user.id}/block`, {
+        blocked: !user.blocked,
+      })
+      toast.success(
+        user.blocked
+          ? `${user.name} has been unblocked.`
+          : `${user.name} has been blocked.`
+      )
+      router.refresh()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not update this user."
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (user.role === "admin") {
+    return <span className="text-xs text-muted-foreground">—</span>
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      onClick={toggle}
+      disabled={busy}
+      className="h-9 gap-1.5 px-3 text-xs"
+    >
+      {busy ? (
+        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+      ) : user.blocked ? (
+        <Shield className="size-3.5" aria-hidden="true" />
+      ) : (
+        <ShieldOff className="size-3.5 text-destructive" aria-hidden="true" />
+      )}
+      {busy ? "Working..." : user.blocked ? "Unblock" : "Block"}
+    </Button>
+  )
 }
 
 function UsersTable({
@@ -33,8 +84,8 @@ function UsersTable({
 
   return (
     <div className="overflow-x-auto rounded-xl border bg-card">
-      <table className="w-full min-w-[44rem] text-left text-sm">
-        <thead className="border-b bg-muted/50 text-xs tracking-[0.08em] text-muted-foreground uppercase">
+      <table className="w-full min-w-[52rem] text-left text-sm">
+        <thead className="border-b bg-muted/50 text-[0.7rem] tracking-[0.08em] text-muted-foreground uppercase">
           <tr>
             <th scope="col" className="px-5 py-3 font-medium">
               User
@@ -51,12 +102,15 @@ function UsersTable({
             <th scope="col" className="px-5 py-3 font-medium">
               Joined
             </th>
+            <th scope="col" className="px-5 py-3 text-right font-medium">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y">
           {users.map((user) => {
             const isAdmin = user.role === "admin"
-            const isBanned = Boolean(user.banned)
+            const isBlocked = user.blocked
 
             return (
               <tr key={user.id}>
@@ -92,10 +146,10 @@ function UsersTable({
                   )}
                 </td>
                 <td className="px-5 py-4">
-                  {isBanned ? (
+                  {isBlocked ? (
                     <span className="inline-flex items-center gap-1.5 text-destructive">
                       <ShieldOff className="size-3.5" aria-hidden="true" />
-                      Banned
+                      Blocked
                     </span>
                   ) : (
                     <span className="text-muted-foreground">Active</span>
@@ -103,6 +157,11 @@ function UsersTable({
                 </td>
                 <td className="px-5 py-4 text-muted-foreground">
                   {formatDate(user.createdAt)}
+                </td>
+                <td className="px-5 py-4">
+                  <div className="flex justify-end">
+                    <BlockButton user={user} />
+                  </div>
                 </td>
               </tr>
             )

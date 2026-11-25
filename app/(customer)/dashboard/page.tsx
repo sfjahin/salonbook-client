@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { StatCard } from "@/components/stat-card"
 import { buttonVariants } from "@/components/ui/button"
 import { createServerToken, fetchCustomerStats, fetchMyAppointments } from "@/lib/catalog"
-import { getServerSession } from "@/lib/auth-guard"
+import { requireCustomer } from "@/lib/auth-guard"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -27,9 +27,9 @@ function formatDate(value: string) {
 }
 
 export default async function CustomerDashboardPage() {
+  const session = await requireCustomer()
   const token = await createServerToken()
-  const session = await getServerSession()
-  const firstName = session?.user.name?.split(" ")[0] || "there"
+  const firstName = session.user.name?.split(" ")[0] || "there"
 
   const [stats, appointments] = await Promise.all([
     token ? fetchCustomerStats(token) : null,

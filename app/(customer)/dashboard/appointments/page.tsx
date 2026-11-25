@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { AppointmentList } from "@/components/appointments/appointment-list"
+import { requireCustomer } from "@/lib/auth-guard"
 import { createServerToken, fetchMyAppointments } from "@/lib/catalog"
 import type { AppointmentStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,8 @@ const filters: Array<{ label: string; value: string }> = [
 export default async function MyAppointmentsPage(
   props: PageProps<"/dashboard/appointments">
 ) {
+  await requireCustomer()
+
   const searchParams = await props.searchParams
   const active =
     typeof searchParams.status === "string" ? searchParams.status : "all"

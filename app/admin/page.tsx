@@ -1,64 +1,56 @@
 import Link from "next/link"
-import { headers } from "next/headers"
 import {
   ArrowRight,
+  CalendarCheck,
   CalendarDays,
-  ShieldCheck,
-  UserX,
+  CreditCard,
+  Hourglass,
+  Scissors,
   Users,
 } from "lucide-react"
 
 import { UsersTable, type AdminUserRow } from "@/components/admin/users-table"
+import { requireAdmin } from "@/lib/auth-guard"
+import { StatCard } from "@/components/stat-card"
+import { StatusBadge } from "@/components/status-badge"
 import { buttonVariants } from "@/components/ui/button"
-import { auth } from "@/lib/auth"
+import {
+  createServerToken,
+  fetchAdminStats,
+  fetchAllAppointments,
+  fetchUsers,
+} from "@/lib/catalog"
 import { cn } from "@/lib/utils"
+
+export const dynamic = "force-dynamic"
 
 export const metadata = {
   title: "Admin overview - SalonBook",
   description: "SalonBook administration overview.",
 }
 
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
+    new Date(value)
+  )
+}
+
 export default async function AdminOverviewPage() {
-  const { users, total } = await auth.api.listUsers({
-    headers: await headers(),
-    query: {
-      limit: 1000,
-      offset: 0,
-      sortBy: "createdAt",
-      sortDirection: "desc",
-    },
-  })
+  await requireAdmin()
 
-  const adminCount = users.filter((user) => user.role === "admin").length
-  const bannedCount = users.filter((user) => user.banned).length
-  const customerCount = total - adminCount
-  const recentUsers = users.slice(0, 5) as AdminUserRow[]
+  const token = await createServerToken()
 
-  const stats = [
-    {
-      label: "Total users",
-      value: total,
-      icon: Users,
-    },
-    {
-      label: "Customers",
-      value: customerCount,
-      icon: CalendarDays,
-    },
-    {
-      label: "Administrators",
-      value: adminCount,
-      icon: ShieldCheck,
-    },
-    {
-      label: "Banned accounts",
-      value: bannedCount,
-      icon: UserX,
-    },
-  ] as const
+  const [stats, appointments, users] = await Promise.all([
+    token ? fetchAdminStats(token) : null,
+    token ? fetchAllAppointments(token) : Promise.resolve([]),
+    token ? fetchUsers(token) : Promise.resolve([]),
+  ])
+
+  const recentAppointments = appointments.slice(0, 5)
+  const recentUsers = (users as AdminUserRow[]).slice(0, 5)
 
   return (
-    <div className="page-gutter mx-auto w-full max-w-6xl py-12">
+    <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
@@ -68,46 +60,135 @@ export default async function AdminOverviewPage() {
             Overview
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            A quick view of the people using SalonBook.
+            A quick view of the people, services and bookings at SalonBook.
           </p>
         </div>
 
         <Link
-          href="/admin/users"
-          className={cn(buttonVariants({ variant: "outline" }), "h-10 px-4")}
+          href="/admin/services/new"
+          className={cn(buttonVariants(), "h-10 shrink-0 px-4")}
         >
-          Manage users
+          Add a service
           <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
 
-      <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <article
-            key={stat.label}
-            className="rounded-xl border bg-card p-5 text-card-foreground"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium tracking-[0.08em] text-muted-foreground uppercase">
-                {stat.label}
-              </p>
-              <stat.icon
-                className="size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-            </div>
-            <p className="mt-4 font-serif text-4xl leading-none">
-              {stat.value}
-            </p>
-          </article>
-        ))}
+      <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          label="Registered customers"
+          value={stats?.totalCustomers ?? 0}
+          icon={Users}
+        />
+        <StatCard
+          label="Active services"
+          value={stats?.totalActiveServices ?? 0}
+          icon={Scissors}
+          hint={`${stats?.totalServices ?? 0} services in total`}
+        />
+        <StatCard
+          label="Appointment requests"
+          value={stats?.totalAppointments ?? 0}
+          icon={CalendarDays}
+        />
+        <StatCard
+          label="Pending appointments"
+          value={stats?.pendingAppointments ?? 0}
+          icon={Hourglass}
+        />
+        <StatCard
+          label="Confirmed appointments"
+          value={stats?.confirmedAppointments ?? 0}
+          icon={CalendarCheck}
+        />
+        <StatCard
+          label="Successful payments"
+          value={stats?.successfulPayments ?? 0}
+          icon={CreditCard}
+          hint={
+            stats && stats.totalRevenue > 0
+              ? `$${stats.totalRevenue.toFixed(2)} collected`
+              : "No payments yet"
+          }
+        />
       </div>
 
       <section className="mt-10">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="font-serif text-2xl tracking-tight">
-            Recent sign-ups
+            Latest appointment requests
           </h2>
+          <Link
+            href="/admin/appointments"
+            className="text-xs font-medium underline-offset-4 hover:underline"
+          >
+            View all
+          </Link>
+        </div>
+
+        {recentAppointments.length === 0 ? (
+          <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+            No appointment requests yet.
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border bg-card">
+            <table className="w-full min-w-[44rem] text-left text-sm">
+              <thead className="border-b bg-muted/50 text-[0.7rem] tracking-[0.08em] text-muted-foreground uppercase">
+                <tr>
+                  <th scope="col" className="px-5 py-3 font-medium">
+                    Customer
+                  </th>
+                  <th scope="col" className="px-5 py-3 font-medium">
+                    Service
+                  </th>
+                  <th scope="col" className="px-5 py-3 font-medium">
+                    Date
+                  </th>
+                  <th scope="col" className="px-5 py-3 font-medium">
+                    Status
+                  </th>
+                  <th scope="col" className="px-5 py-3 font-medium">
+                    Payment
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {recentAppointments.map((appointment) => (
+                  <tr key={appointment.id}>
+                    <td className="px-5 py-4">
+                      <p className="font-medium">
+                        {appointment.customer?.name ?? "Customer"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {appointment.customer?.email}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {appointment.service?.serviceName ?? "Service"}
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {formatDate(appointment.appointmentDate)} at{" "}
+                      {appointment.timeSlot}
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusBadge status={appointment.status} />
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusBadge
+                        status={appointment.paymentStatus}
+                        kind="payment"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2 className="font-serif text-2xl tracking-tight">Recent sign-ups</h2>
           <Link
             href="/admin/users"
             className="text-xs font-medium underline-offset-4 hover:underline"

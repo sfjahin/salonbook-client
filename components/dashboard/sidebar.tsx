@@ -3,8 +3,15 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import * as React from "react"
-import { Menu } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import {
+  CalendarDays,
+  CreditCard,
+  LayoutDashboard,
+  Menu,
+  Scissors,
+  UserRound,
+  Users,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -16,10 +23,26 @@ import {
 } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
+/**
+ * Icons are referenced by a stable string key instead of passing component
+ * functions from a server layout into this client component. React cannot
+ * serialise functions across that boundary.
+ */
+const navIcons = {
+  overview: LayoutDashboard,
+  appointments: CalendarDays,
+  profile: UserRound,
+  services: Scissors,
+  users: Users,
+  transactions: CreditCard,
+} as const
+
+export type DashboardNavIcon = keyof typeof navIcons
+
 export type DashboardNavItem = {
   label: string
   href: string
-  icon: LucideIcon
+  icon: DashboardNavIcon
 }
 
 type Variant = "light" | "dark"
@@ -35,7 +58,7 @@ function NavLink({
   variant: Variant
   onClick?: () => void
 }) {
-  const Icon = item.icon
+  const Icon = navIcons[item.icon]
 
   return (
     <Link

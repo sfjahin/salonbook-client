@@ -1,11 +1,7 @@
 import Link from "next/link"
+import { ArrowUpRight } from "lucide-react"
 
 import { SignOutButton } from "@/components/sign-out-button"
-
-const adminNav = [
-  { label: "Overview", href: "/admin" },
-  { label: "Users", href: "/admin/users" },
-] as const
 
 function AdminHeader({ name, email }: { name: string; email: string }) {
   return (
@@ -18,26 +14,13 @@ function AdminHeader({ name, email }: { name: string; email: string }) {
           </span>
         </Link>
 
-        <nav
-          aria-label="Administration"
-          className="flex items-center gap-1 text-sm"
+        <Link
+          href="/"
+          className="flex items-center gap-1 rounded-md px-3 py-2 text-sm text-paper/70 transition-colors hover:bg-paper/10 hover:text-paper"
         >
-          {adminNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-md px-3 py-2 text-paper/70 transition-colors hover:bg-paper/10 hover:text-paper"
-            >
-              {item.label}
-            </Link>
-          ))}
-          <Link
-            href="/"
-            className="rounded-md px-3 py-2 text-paper/70 transition-colors hover:bg-paper/10 hover:text-paper"
-          >
-            View site
-          </Link>
-        </nav>
+          View site
+          <ArrowUpRight className="size-3.5" aria-hidden="true" />
+        </Link>
 
         <div className="ml-auto flex items-center gap-3">
           <div className="hidden text-right sm:block">
