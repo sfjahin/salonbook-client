@@ -33,18 +33,25 @@ export class CatalogError extends Error {
 type RequestOptions = {
   token?: string
   cache?: RequestCache
+  method?: "GET" | "POST" | "PATCH" | "DELETE"
+  body?: unknown
 }
 
 async function request<T>(
   path: string,
-  { token, cache = "no-store" }: RequestOptions = {}
+  { token, cache = "no-store", method = "GET", body }: RequestOptions = {}
 ): Promise<T> {
   let response: Response
 
   try {
     response = await fetch(`${API_URL}${path}`, {
+      method,
       cache,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     })
   } catch {
     throw new CatalogError("Could not reach the server.", 503)
@@ -125,6 +132,24 @@ export async function fetchAllAppointments(token: string, status?: string) {
     { token }
   )
   return data.appointments
+}
+
+/**
+ * Fallback verification used by the success page. The Express API retrieves
+ * the session from Stripe directly, so the client cannot fake a payment by
+ * passing a made-up id.
+ */
+export async function verifyCheckoutSession(token: string, sessionId: string) {
+  return request<{
+    status: string
+    appointmentId: string | null
+    amountTotal: number
+    currency: string
+  }>("/api/payments/verify", {
+    token,
+    method: "POST",
+    body: { sessionId },
+  })
 }
 
 export async function fetchMyTransactions(token: string) {

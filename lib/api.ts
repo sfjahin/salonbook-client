@@ -6,17 +6,16 @@
  * before giving up, so an expired token never strands the user.
  */
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(
-  /\/+$/,
-  ""
-)
-
-const TOKEN_STORAGE_KEY = "salonbook.api.token"
 /** Tokens live for 1 hour; refresh a little before they expire. */
 const TOKEN_TTL_MS = 45 * 60 * 1000
 
 type CachedToken = { value: string; storedAt: number }
 
+/**
+ * The token is cached in memory only. Persisting it in sessionStorage caused
+ * a previously signed-in account's token to leak into a new session, so a
+ * fresh token is always minted after a reload or sign-in.
+ */
 let memoryToken: CachedToken | null = null
 
 export class ApiError extends Error {
@@ -30,52 +29,22 @@ export class ApiError extends Error {
 }
 
 function readStoredToken(): CachedToken | null {
-  if (memoryToken) return memoryToken
+  if (!memoryToken) return null
 
-  if (typeof window === "undefined") return null
-
-  try {
-    const raw = window.sessionStorage.getItem(TOKEN_STORAGE_KEY)
-    if (!raw) return null
-
-    const parsed = JSON.parse(raw) as CachedToken
-    if (!parsed?.value) return null
-
-    if (Date.now() - parsed.storedAt > TOKEN_TTL_MS) {
-      window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
-      return null
-    }
-
-    memoryToken = parsed
-    return parsed
-  } catch {
+  if (Date.now() - memoryToken.storedAt > TOKEN_TTL_MS) {
+    memoryToken = null
     return null
   }
+
+  return memoryToken
 }
 
 function storeToken(value: string) {
-  const cached = { value, storedAt: Date.now() }
-  memoryToken = cached
-
-  if (typeof window !== "undefined") {
-    try {
-      window.sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(cached))
-    } catch {
-      // Storage can be unavailable (private mode); memory cache still works.
-    }
-  }
+  memoryToken = { value, storedAt: Date.now() }
 }
 
 export function clearToken() {
   memoryToken = null
-
-  if (typeof window !== "undefined") {
-    try {
-      window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
-    } catch {
-      // ignore
-    }
-  }
 }
 
 async function fetchToken(): Promise<string | null> {
@@ -118,7 +87,7 @@ export async function apiFetch<T = unknown>(
   let response: Response
 
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    response = await fetch(`/api/backend${path}`, {
       ...rest,
       headers: requestHeaders,
       credentials: "include",
@@ -190,4 +159,3 @@ export const api = {
     apiFetch<T>(path, { ...options, method: "DELETE" }),
 }
 
-export { API_URL }

@@ -48,6 +48,11 @@ function ThemeHotkey() {
         return
       }
 
+      // Some browsers and IMEs dispatch keydown without a key value.
+      if (typeof event.key !== "string") {
+        return
+      }
+
       if (event.key.toLowerCase() !== "d") {
         return
       }

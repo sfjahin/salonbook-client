@@ -1,9 +1,11 @@
 import Link from "next/link"
 import {
+  ArrowRight,
   CalendarCheck,
   CalendarDays,
   CreditCard,
   Hourglass,
+  Sparkles,
 } from "lucide-react"
 
 import { StatusBadge } from "@/components/status-badge"
@@ -26,6 +28,14 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
+function todayKey() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(now.getDate()).padStart(2, "0")}`
+}
+
 export default async function CustomerDashboardPage() {
   const session = await requireCustomer()
   const token = await createServerToken()
@@ -35,6 +45,19 @@ export default async function CustomerDashboardPage() {
     token ? fetchCustomerStats(token) : null,
     token ? fetchMyAppointments(token) : Promise.resolve([]),
   ])
+
+  const today = todayKey()
+  const nextAppointment = appointments
+    .filter(
+      (appointment) =>
+        appointment.status !== "cancelled" &&
+        appointment.appointmentDate.slice(0, 10) >= today
+    )
+    .sort((a, b) =>
+      `${a.appointmentDate}${a.timeSlot}`.localeCompare(
+        `${b.appointmentDate}${b.timeSlot}`
+      )
+    )[0]
 
   const recent = appointments.slice(0, 4)
 
@@ -55,11 +78,68 @@ export default async function CustomerDashboardPage() {
 
         <Link
           href="/services"
-          className={cn(buttonVariants(), "h-11 shrink-0 px-5")}
+          className={cn(buttonVariants(), "h-11 shrink-0 gap-2 px-5")}
         >
           Book a service
+          <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
+
+      {nextAppointment ? (
+        <section className="mt-8 overflow-hidden rounded-2xl bg-ink text-paper">
+          <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-[0.65rem] font-medium tracking-[0.18em] text-paper/60 uppercase">
+                <Sparkles className="size-3.5" aria-hidden="true" />
+                Your next appointment
+              </p>
+              <h2 className="mt-3 font-serif text-3xl leading-tight tracking-tight">
+                {nextAppointment.service?.serviceName ?? "Salon service"}
+              </h2>
+              <p className="mt-2 text-sm text-paper/70">
+                {formatDate(nextAppointment.appointmentDate)} at{" "}
+                {nextAppointment.timeSlot}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <StatusBadge status={nextAppointment.status} />
+                <StatusBadge
+                  status={nextAppointment.paymentStatus}
+                  kind="payment"
+                />
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+              <p className="font-serif text-3xl">
+                ${Number(nextAppointment.servicePrice).toFixed(2)}
+              </p>
+              {nextAppointment.status === "confirmed" &&
+              nextAppointment.paymentStatus === "unpaid" ? (
+                <Link
+                  href={`/checkout/${nextAppointment.id}`}
+                  className={cn(
+                    buttonVariants(),
+                    "h-10 gap-2 bg-paper px-5 text-ink hover:bg-paper/90"
+                  )}
+                >
+                  Pay now
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              ) : (
+                <Link
+                  href="/dashboard/appointments"
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "h-10 border-white/20 bg-transparent px-5 text-paper hover:bg-paper/10 hover:text-paper"
+                  )}
+                >
+                  View details
+                </Link>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

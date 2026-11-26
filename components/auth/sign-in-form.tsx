@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signIn } from "@/lib/auth-client"
+import { clearToken } from "@/lib/api"
 
 function SignInForm() {
   const router = useRouter()
@@ -43,6 +44,9 @@ function SignInForm() {
 
       const isAdmin =
         (data?.user as { role?: string | null } | undefined)?.role === "admin"
+
+      // A token cached from a previous session would belong to another user.
+      clearToken()
 
       console.log("[sign-in] success:", {
         id: data?.user?.id,

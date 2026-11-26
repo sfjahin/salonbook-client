@@ -7,6 +7,7 @@ import { Loader2, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { signOut } from "@/lib/auth-client"
+import { clearToken } from "@/lib/api"
 
 function SignOutButton({ className }: { className?: string }) {
   const router = useRouter()
@@ -17,6 +18,8 @@ function SignOutButton({ className }: { className?: string }) {
 
     try {
       await signOut()
+      // Drop any cached API token so the next account never inherits it.
+      clearToken()
       router.push("/")
       router.refresh()
     } finally {

@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signUp } from "@/lib/auth-client"
+import { clearToken } from "@/lib/api"
 
 function SignUpForm() {
   const router = useRouter()
@@ -63,6 +64,7 @@ function SignUpForm() {
       })
 
       router.push("/dashboard")
+      clearToken()
       router.refresh()
     } catch {
       setError("Something went wrong. Please try again.")

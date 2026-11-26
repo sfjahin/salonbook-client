@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 import { SERVICE_CATEGORIES } from "@/lib/categories"
 import type { Service } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 function ServiceForm({ service }: { service?: Service }) {
   const router = useRouter()
@@ -34,6 +35,7 @@ function ServiceForm({ service }: { service?: Service }) {
 
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
 
   async function handleUpload(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -147,20 +149,37 @@ function ServiceForm({ service }: { service?: Service }) {
           </div>
 
           <div>
-            <Label htmlFor="service-status" className="text-xs font-medium">
-              Service status
-            </Label>
-            <select
-              id="service-status"
-              value={status}
-              onChange={(event) =>
-                setStatus(event.target.value as Service["status"])
+            <Label className="text-xs font-medium">Service status</Label>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={status === "active"}
+              onClick={() =>
+                setStatus(status === "active" ? "inactive" : "active")
               }
-              className="mt-2 flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(
+                "mt-2 flex h-11 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm transition-colors",
+                status === "active" ? "text-foreground" : "text-muted-foreground"
+              )}
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+              <span>{status === "active" ? "Active" : "Inactive"}</span>
+              <span
+                className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+                  status === "active" ? "bg-ink" : "bg-muted"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block size-4 rounded-full bg-background shadow transition-transform",
+                    status === "active" ? "translate-x-6" : "translate-x-1"
+                  )}
+                />
+              </span>
+            </button>
+            <p className="mt-1.5 text-[0.7rem] text-muted-foreground">
+              Active services are bookable by customers.
+            </p>
           </div>
 
           <div>
@@ -243,20 +262,45 @@ function ServiceForm({ service }: { service?: Service }) {
               if (file) void handleUpload(file)
             }}
           />
-          <Button
+
+          <button
             type="button"
-            variant="outline"
             disabled={uploading}
             onClick={() => fileRef.current?.click()}
-            className="h-10 gap-2 px-4"
+            onDragOver={(event) => {
+              event.preventDefault()
+              setDragActive(true)
+            }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(event) => {
+              event.preventDefault()
+              setDragActive(false)
+              const file = event.dataTransfer.files?.[0]
+              if (file) void handleUpload(file)
+            }}
+            className={cn(
+              "flex min-h-32 flex-1 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center text-sm transition-colors",
+              dragActive
+                ? "border-ink bg-muted"
+                : "border-input hover:border-foreground/40 hover:bg-muted/50",
+              uploading && "pointer-events-none opacity-60"
+            )}
           >
             {uploading ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              <Loader2
+                className="size-5 animate-spin text-muted-foreground"
+                aria-hidden="true"
+              />
             ) : (
-              <Upload className="size-4" aria-hidden="true" />
+              <Upload className="size-5 text-muted-foreground" aria-hidden="true" />
             )}
-            {uploading ? "Uploading..." : "Upload image"}
-          </Button>
+            <span className="font-medium">
+              {uploading ? "Uploading..." : "Click or drag an image here"}
+            </span>
+            <span className="text-[0.7rem] text-muted-foreground">
+              PNG, JPG or WEBP up to 8 MB
+            </span>
+          </button>
         </div>
 
         <div className="mt-5">

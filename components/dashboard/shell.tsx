@@ -9,56 +9,56 @@ import {
 type Variant = "light" | "dark"
 
 /**
- * Shared dashboard frame: existing site header, a role based sidebar, the
- * main content area and the site footer. Collapses into a sheet on mobile.
+ * Shared dashboard frame: a full-height role based sidebar, a mobile top bar
+ * and the main content area. The sidebar owns the logo, navigation, promo card
+ * and sign-out control so both dashboards share one responsive structure.
  */
 function DashboardShell({
   items,
   user,
   title,
+  role,
   variant = "light",
-  header,
-  footer,
+  promo,
   sidebarFooter,
   children,
 }: {
   items: DashboardNavItem[]
   user: { name: string; email: string }
   title: string
+  role: string
   variant?: Variant
-  header: ReactNode
-  footer?: ReactNode
+  promo?: ReactNode
   sidebarFooter?: ReactNode
   children: ReactNode
 }) {
   return (
-    <>
-      {header}
+    <div className="flex min-h-svh flex-1">
+      <DashboardSidebar
+        items={items}
+        user={user}
+        variant={variant}
+        role={role}
+        promo={promo}
+        footer={sidebarFooter}
+      />
 
-      <div className="flex flex-1">
-        <DashboardSidebar
+      <div className="flex min-w-0 flex-1 flex-col">
+        <DashboardMobileNav
           items={items}
           user={user}
+          title={title}
           variant={variant}
+          role={role}
+          promo={promo}
           footer={sidebarFooter}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <DashboardMobileNav
-            items={items}
-            title={title}
-            variant={variant}
-            footer={sidebarFooter}
-          />
-
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
-            {children}
-          </main>
-        </div>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-10 lg:py-10">
+          {children}
+        </main>
       </div>
-
-      {footer}
-    </>
+    </div>
   )
 }
 

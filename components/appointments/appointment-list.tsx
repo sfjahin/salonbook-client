@@ -52,22 +52,8 @@ function AppointmentRow({ appointment }: { appointment: Appointment }) {
     }
   }
 
-  async function handlePay() {
-    setBusy(true)
-    try {
-      const data = await api.post<{ url: string }>("/api/payments/checkout", {
-        appointmentId: appointment.id,
-      })
-
-      if (!data.url) throw new Error("Stripe did not return a checkout URL.")
-
-      window.location.href = data.url
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Could not start payment."
-      )
-      setBusy(false)
-    }
+  function handlePay() {
+    router.push(`/checkout/${appointment.id}`)
   }
 
   return (
@@ -145,12 +131,8 @@ function AppointmentRow({ appointment }: { appointment: Appointment }) {
             <Button
               type="button"
               onClick={handlePay}
-              disabled={busy}
               className="h-10 gap-2 px-4"
             >
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              ) : null}
               Pay now
             </Button>
           ) : null}
