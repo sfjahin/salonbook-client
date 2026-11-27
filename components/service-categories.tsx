@@ -2,11 +2,26 @@ import Link from "next/link"
 
 import { fetchCategories } from "@/lib/catalog"
 
+/** Preferred order for the category pills; unknown categories follow. */
+const CATEGORY_ORDER = ["Hair", "Skin", "Nails", "Wellness", "Beauty"]
+
+function sortCategories<T extends { value: string }>(categories: T[]) {
+  return [...categories].sort((a, b) => {
+    const ai = CATEGORY_ORDER.indexOf(a.value)
+    const bi = CATEGORY_ORDER.indexOf(b.value)
+
+    if (ai === -1 && bi === -1) return a.value.localeCompare(b.value)
+    if (ai === -1) return 1
+    if (bi === -1) return -1
+    return ai - bi
+  })
+}
+
 /**
  * Dynamic home section: the real service categories stored in MongoDB.
  */
 async function ServiceCategories() {
-  const categories = await fetchCategories()
+  const categories = sortCategories(await fetchCategories())
 
   if (categories.length === 0) return null
 
@@ -19,12 +34,12 @@ async function ServiceCategories() {
         Your ritual, your way.
       </h2>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex">
         {categories.map((category) => (
           <Link
             key={category.value}
             href={`/services?category=${encodeURIComponent(category.value)}`}
-            className="flex h-9 items-center justify-center rounded-md bg-sand px-4 text-center text-xs font-medium text-hero-foreground transition-colors hover:bg-sand/70"
+            className="flex h-10 items-center justify-center rounded-full bg-sand px-4 text-center text-xs font-medium text-hero-foreground transition-colors hover:bg-sand/70 lg:flex-1"
           >
             {category.label}
           </Link>

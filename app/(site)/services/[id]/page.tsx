@@ -1,11 +1,11 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
-import { ArrowLeft, Clock, Tag } from "lucide-react"
+import { notFound } from "next/navigation"
+import { ArrowLeft, Clock, LogIn, Tag } from "lucide-react"
 
 import { BookingForm } from "@/components/booking/booking-form"
-import { formatPrice } from "@/components/service-card"
+import { formatPrice, serviceTagline } from "@/components/service-card"
 import { buttonVariants } from "@/components/ui/button"
 import { fetchService } from "@/lib/catalog"
 import { getServerSession } from "@/lib/auth-guard"
@@ -35,10 +35,6 @@ export default async function ServiceDetailsPage(
   const { id } = await props.params
   const session = await getServerSession()
 
-  if (!session) {
-    redirect(`/sign-in?next=${encodeURIComponent(`/services/${id}`)}`)
-  }
-
   let service
   try {
     service = await fetchService(id)
@@ -48,8 +44,10 @@ export default async function ServiceDetailsPage(
     throw error
   }
 
-  const isAdmin = session.user.role === "admin"
+  const isAdmin = session?.user.role === "admin"
   const isBookable = service.status === "active" && !isAdmin
+  const tagline = serviceTagline(service.description)
+  const fullDescription = service.description.slice(tagline.length).trim()
 
   return (
     <main className="bg-hero text-hero-foreground">
@@ -84,9 +82,15 @@ export default async function ServiceDetailsPage(
                 {service.serviceName}
               </h1>
 
-              <p className="mt-5 max-w-2xl text-sm leading-relaxed text-hero-muted sm:text-base">
-                {service.description}
+              <p className="mt-5 max-w-2xl font-serif text-lg leading-relaxed text-hero-foreground sm:text-xl">
+                {tagline}
               </p>
+
+              {fullDescription ? (
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-hero-muted sm:text-base">
+                  {fullDescription}
+                </p>
+              ) : null}
 
               <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm text-hero-foreground">
                 <span className="flex items-center gap-2">
@@ -120,6 +124,23 @@ export default async function ServiceDetailsPage(
                   <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
                     This service is currently unavailable for booking.
                   </p>
+                ) : !session ? (
+                  <div>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      Sign in to request this appointment. New here? Creating an
+                      account takes less than a minute.
+                    </p>
+                    <Link
+                      href={`/sign-in?next=${encodeURIComponent(`/services/${service.id}`)}`}
+                      className={cn(
+                        buttonVariants(),
+                        "mt-5 h-11 w-full gap-2"
+                      )}
+                    >
+                      <LogIn className="size-4" aria-hidden="true" />
+                      Sign in to book
+                    </Link>
+                  </div>
                 ) : (
                   <BookingForm serviceId={service.id} />
                 )}
@@ -133,7 +154,7 @@ export default async function ServiceDetailsPage(
               ) : null}
             </div>
 
-            {!isAdmin ? (
+            {session && !isAdmin ? (
               <div className="mt-5 rounded-xl border border-hero-foreground/10 bg-sand/60 p-6">
                 <p className="font-serif text-lg">Already booked with us?</p>
                 <p className="mt-2 text-xs text-hero-muted">

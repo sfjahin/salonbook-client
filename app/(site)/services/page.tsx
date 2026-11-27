@@ -19,6 +19,21 @@ const sortOptions = [
   { label: "Price: high to low", value: "price-desc" },
 ]
 
+/** Preferred order for the category pills; unknown categories follow. */
+const CATEGORY_ORDER = ["Hair", "Skin", "Nails", "Wellness", "Beauty"]
+
+function sortCategories<T extends { value: string }>(categories: T[]) {
+  return [...categories].sort((a, b) => {
+    const ai = CATEGORY_ORDER.indexOf(a.value)
+    const bi = CATEGORY_ORDER.indexOf(b.value)
+
+    if (ai === -1 && bi === -1) return a.value.localeCompare(b.value)
+    if (ai === -1) return 1
+    if (bi === -1) return -1
+    return ai - bi
+  })
+}
+
 function buildHref(base: Record<string, string | undefined>) {
   const params = new URLSearchParams()
 
@@ -46,6 +61,8 @@ export default async function ServicesPage(props: PageProps<"/services">) {
     }),
     fetchCategories(),
   ])
+
+  const orderedCategories = sortCategories(categories)
 
   return (
     <main className="bg-hero text-hero-foreground">
@@ -103,7 +120,7 @@ export default async function ServicesPage(props: PageProps<"/services">) {
             All services
           </Link>
 
-          {categories.map((category) => {
+          {orderedCategories.map((category) => {
             const isActive = activeCategory === category.value
 
             return (
@@ -186,7 +203,7 @@ export default async function ServicesPage(props: PageProps<"/services">) {
             </Link>
           </div>
         ) : (
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {services.map((service) => (
               <ServiceCard key={service.id} service={service} />
             ))}
